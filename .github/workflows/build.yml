@@ -12,9 +12,9 @@ jobs:
   android:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -41,10 +41,25 @@ jobs:
       - run: flutter pub get
 
       - name: Revisar código
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        run: |
+          set +e
+          flutter analyze --no-fatal-infos --no-fatal-warnings --format=machine 2> analyze.txt
+          code=$?
+          grep -E '^(ERROR|WARNING)\|' analyze.txt | head -40 | while IFS='|' read -r sev typ cod file line col len msg; do
+            f=${file#"$GITHUB_WORKSPACE/"}
+            echo "::error file=$f,line=$line,col=$col::[$sev $cod] $msg"
+          done
+          exit $code
 
       - name: Compilar APK
-        run: flutter build apk --release
+        run: |
+          set -o pipefail
+          flutter build apk --release 2>&1 | tee build.txt
+          code=${PIPESTATUS[0]}
+          if [ $code -ne 0 ]; then
+            grep -E "error|Error|FAILURE|What went wrong" -A3 build.txt | head -60 | while IFS= read -r l; do echo "::error::$l"; done
+          fi
+          exit $code
 
       - name: Renombrar
         run: cp build/app/outputs/flutter-apk/app-release.apk ReporteCCZ.apk
