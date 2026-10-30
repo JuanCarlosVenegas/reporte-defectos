@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Perfil de cada usuario: todos los usuarios con sesión lo leen (para mostrar quién reportó),
+    // solo el dueño lo modifica.
+    match /usuarios/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+    // Reportes y fotos: cualquier usuario con sesión iniciada.
+    match /reportes/{id} {
+      allow read, create, update: if request.auth != null;
+      allow delete: if false;
+    }
+    match /fotos/{id} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
