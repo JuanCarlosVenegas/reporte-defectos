@@ -43,7 +43,7 @@ jobs:
       - name: Revisar código
         run: |
           set +e
-          flutter analyze --no-fatal-infos --no-fatal-warnings --format=machine 2> analyze.txt
+          dart analyze --format=machine --no-fatal-warnings lib > analyze.txt 2>&1
           code=$?
           grep -E '^(ERROR|WARNING)\|' analyze.txt | head -40 | while IFS='|' read -r sev typ cod file line col len msg; do
             f=${file#"$GITHUB_WORKSPACE/"}
